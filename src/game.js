@@ -61,8 +61,16 @@ export class Game {
 
     // scene setup
     const sc = this.scene;
-    sc.background = def.theme === 'blocks' ? new THREE.Color(0xcfe0f0) : TEX.skyTexture();
-    sc.fog = new THREE.Fog(def.theme === 'blocks' ? 0xcfe0f0 : 0xd9cfb8, 70, 220);
+    const sky = TEX.cloudySkyTexture(0.9, 0.18);
+    sc.background = sky;
+    sc.fog = new THREE.Fog(def.theme === 'blocks' ? 0xd6e2ee : 0xdcd0b6, 80, 260);
+    const pmrem = new THREE.PMREMGenerator(this.renderer);
+    const env = pmrem.fromEquirectangular(sky).texture;
+    pmrem.dispose();
+    sc.environment = env;
+    sc.environmentIntensity = 0.35;
+    this.vm.scene.environment = env;
+    this.vm.scene.environmentIntensity = 0.6;
     const hemi = new THREE.HemisphereLight(0xe4ecff, 0x8a7350, 1.25);
     sc.add(hemi);
     const sun = new THREE.DirectionalLight(0xfff0d6, 2.6);
@@ -81,6 +89,7 @@ export class Game {
     this.nav = new Nav(this.map);
     this.colliders = this.map.colliders;
     this.effects = new Effects(sc);
+    this.effects.onCasingBounce = (p) => { if (p.distanceTo(this.player.pos) < 12) this.audio.casing(p); };
 
     // bomb model (shared)
     this.bombMesh = buildCharge();
@@ -139,7 +148,7 @@ export class Game {
 
   rebuildModel(a) {
     if (a.model) this.scene.remove(a.model);
-    a.model = buildAgent(a.team);
+    a.model = buildAgent(a.team, a.id);
     a.modelWeapon = null;
     a.wcache = {};
     this.scene.add(a.model);
@@ -416,7 +425,10 @@ export class Game {
       const w = this.map.cellToWorld(cell.c, cell.r);
       a.pos.set(w.x + rand(-0.3, 0.3), 0, w.z + rand(-0.3, 0.3));
       const ec = enemyCenter[a.team];
-      a.yaw = Math.atan2(-(ec.x - a.pos.x), -(ec.z - a.pos.z));
+      let look = ec;
+      const route = this.nav.findPath(a.pos, ec);
+      if (route) look = route.find((p) => Math.hypot(p.x - a.pos.x, p.z - a.pos.z) > 6) || route[route.length - 1] || ec;
+      a.yaw = Math.atan2(-(look.x - a.pos.x), -(look.z - a.pos.z));
       a.pitch = 0;
       a.model.rotation.set(0, 0, 0);
       a.model.position.y = 0;
@@ -722,6 +734,15 @@ export class Game {
     w.shots++;
 
     this.effects.muzzle(muzzle, def.type === 'sniper' || def.type === 'shotgun' ? 1.5 : 1);
+    // brass
+    if (def.type !== 'shotgun' && (a.isPlayer || a.pos.distanceTo(this.player.pos) < 25)) {
+      const right = { x: Math.cos(a.yaw), z: -Math.sin(a.yaw) };
+      let ep = null;
+      if (a.isPlayer && !a.scoped) ep = this.vm.anchorWorld('eject', this.camera, new THREE.Vector3());
+      if (!ep) ep = muzzle.clone().add(new THREE.Vector3(-dirFromAngles(a.yaw, 0, {}).x * 0.5, 0, -dirFromAngles(a.yaw, 0, {}).z * 0.5));
+      const v = new THREE.Vector3(right.x * rand(1.6, 2.6) + a.vel.x, rand(1.8, 2.8), right.z * rand(1.6, 2.6) + a.vel.z);
+      this.effects.casing(ep, v, a.pos.y);
+    }
     this.audio.shot(def, a.isPlayer ? null : a.pos);
     this.alertBots(a, 35);
     if (a.isPlayer) {

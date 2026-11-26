@@ -5,6 +5,11 @@ import { HUD } from './hud.js';
 import { Input } from './input.js';
 import { Audio } from './audio.js';
 import { Lobby } from './lobby.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 
 const SETTINGS_KEY = 'browserstrike.settings';
 const defaults = { sensitivity: 1.0, fov: 74, volume: 0.6, difficulty: 'normal', length: 'short', team: 'auto', name: 'You', friendlyFire: false, quality: 'high' };
@@ -20,6 +25,32 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.autoClear = false;
+
+// Post-processing: world -> ambient occlusion -> first-person weapon on top -> tone map -> SMAA.
+function makeComposer(scene, camera, overlay) {
+  if (settings.quality === 'low') return null;
+  const w = window.innerWidth, h = window.innerHeight;
+  const composer = new EffectComposer(renderer);
+  composer.addPass(new RenderPass(scene, camera));
+  if (settings.quality === 'high') {
+    const ao = new GTAOPass(scene, camera, w, h);
+    ao.updateGtaoMaterial({ radius: 0.7, distanceExponent: 1.4, thickness: 1.2, scale: 1.1, samples: 12 });
+    ao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 12 });
+    ao.blendIntensity = 0.9;
+    composer.addPass(ao);
+  }
+  if (overlay) {
+    const vmPass = new RenderPass(overlay.scene, overlay.camera);
+    vmPass.clear = false;
+    vmPass.clearDepth = true;
+    composer.addPass(vmPass);
+  }
+  composer.addPass(new OutputPass());
+  composer.addPass(new SMAAPass(w * renderer.getPixelRatio(), h * renderer.getPixelRatio()));
+  return composer;
+}
+let composer = null;
+let lobbyComposer = null;
 
 const audio = new Audio();
 audio.setVolume(settings.volume);
@@ -44,6 +75,8 @@ function resize() {
   canvas.style.height = `${h}px`;
   lobby.resize(w / h);
   if (game) { game.camera.aspect = w / h; game.camera.updateProjectionMatrix(); game.vm.resize(w / h); }
+  if (composer) composer.setSize(w, h);
+  if (lobbyComposer) lobbyComposer.setSize(w, h);
 }
 window.addEventListener('resize', resize);
 
@@ -70,9 +103,12 @@ bindSetting('set-len', 'length');
 bindSetting('set-team', 'team', (v) => v, () => lobby.setTeam(settings.team === 'R' ? 'R' : 'G'));
 bindSetting('set-name', 'name', (v) => v.slice(0, 16) || 'You');
 bindSetting('set-ff', 'friendlyFire');
+bindSetting('set-quality', 'quality');
 bindSetting('p-sens', 'sensitivity', parseFloat);
 bindSetting('p-vol', 'volume', parseFloat, () => audio.setVolume(settings.volume));
 lobby.setTeam(settings.team === 'R' ? 'R' : 'G');
+lobby.setEnvironment(renderer);
+lobbyComposer = makeComposer(lobby.scene, lobby.camera, null);
 
 document.querySelectorAll('[data-mode]').forEach((card) => {
   card.addEventListener('click', () => startMatch(card.dataset.mode));
@@ -100,6 +136,8 @@ function startMatch(mode) {
   game = new Game(renderer, audio, settings);
   game.start({ mode, team: settings.team, difficulty: settings.difficulty, length: settings.length, playerName: settings.name });
   hud.attach(game);
+  if (composer) composer.dispose();
+  composer = makeComposer(game.scene, game.camera, game.vm);
   game.on('matchEnd', (r) => showMatchEnd(r));
   hud.onBuyClose = () => { if (state === 'playing') input.lock(); };
   resize();
@@ -186,10 +224,10 @@ function frame(now) {
   fpsAcc += dt; fpsN++;
   if (fpsAcc > 0.5) { fpsEl.textContent = `${Math.round(fpsN / fpsAcc)} FPS`; fpsAcc = 0; fpsN = 0; }
 
-  renderer.clear();
   if (state === 'menu' || !game) {
     lobby.update(dt);
-    renderer.render(lobby.scene, lobby.camera);
+    if (lobbyComposer) lobbyComposer.render(dt);
+    else { renderer.clear(); renderer.render(lobby.scene, lobby.camera); }
     return;
   }
   input.uiBlocked = hud.buyOpen;
@@ -197,10 +235,15 @@ function frame(now) {
     game.update(dt, state === 'playing' ? input : null);
   }
   input.endFrame();
-  renderer.render(game.scene, game.camera);
-  if (game.player.alive && game.vm.visible) {
-    renderer.clearDepth();
-    renderer.render(game.vm.scene, game.vm.camera);
+  game.vm.root.visible = game.vm.root.visible && game.player.alive && game.vm.visible;
+  if (composer) composer.render(dt);
+  else {
+    renderer.clear();
+    renderer.render(game.scene, game.camera);
+    if (game.player.alive && game.vm.visible) {
+      renderer.clearDepth();
+      renderer.render(game.vm.scene, game.vm.camera);
+    }
   }
   hud.update(dt, game.camera, input.keys.has('Tab') || state === 'over');
 }

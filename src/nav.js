@@ -80,6 +80,7 @@ export class Nav {
         const nr = cr + dr, nc = cc + dc;
         if (nr < 0 || nr >= H || nc < 0 || nc >= W || !m.nav[nr][nc]) continue;
         if (dr && dc && (!m.nav[cr][nc] || !m.nav[nr][cc])) continue; // no corner cutting
+        if (!m.canStep(cc, cr, dc, dr)) continue;                    // platforms only via stairs
         const ni = nr * W + nc;
         if (closed[ni]) continue;
         const cost = gScore[cur.i] + (dr && dc ? 1.414 : 1);
@@ -111,12 +112,14 @@ export class Nav {
     if (len < 0.01) return true;
     const nx = -dz / len, nz = dx / len;
     const steps = Math.ceil(len / 0.5);
+    const sc = m.worldToCell(a.x, a.z);
+    const lvl = m.level(sc.c, sc.r);
     for (let i = 0; i <= steps; i++) {
       const t = i / steps;
       const x = a.x + dx * t, z = a.z + dz * t;
       for (const o of [-0.5, 0, 0.5]) {
         const { c, r } = m.worldToCell(x + nx * o, z + nz * o);
-        if (!m.nav[r] || !m.nav[r][c]) return false;
+        if (!m.nav[r] || !m.nav[r][c] || m.level(c, r) !== lvl) return false;
       }
     }
     return true;

@@ -8,7 +8,7 @@ export class Lobby {
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(32, 1, 0.1, 200);
     const sc = this.scene;
-    sc.background = TEX.skyTexture();
+    sc.background = TEX.cloudySkyTexture(0.9, 0.18);
     sc.fog = new THREE.Fog(0xe6dcc6, 12, 55);
     sc.add(new THREE.HemisphereLight(0xeef2ff, 0x8a7350, 1.3));
     const sun = new THREE.DirectionalLight(0xfff0d6, 2.8);
@@ -61,6 +61,13 @@ export class Lobby {
     this.team = 'G';
     this.setTeam('G');
     this.t = 0;
+  }
+
+  setEnvironment(renderer) {
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    this.scene.environment = pmrem.fromEquirectangular(this.scene.background).texture;
+    this.scene.environmentIntensity = 0.4;
+    pmrem.dispose();
   }
 
   setTeam(team) {

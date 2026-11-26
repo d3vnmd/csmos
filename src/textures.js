@@ -317,3 +317,141 @@ export function tileTexture(base = '#3a5fd0') {
   }
   return toTexture(c);
 }
+
+export function cobbleTexture() {
+  const size = 512;
+  const [c, ctx] = canvas(size);
+  const rnd = seededRandom(31);
+  ctx.fillStyle = '#8a7a60';
+  ctx.fillRect(0, 0, size, size);
+  const rows = 10, h = size / rows;
+  for (let r = 0; r < rows; r++) {
+    let x = (r % 2) * -20;
+    while (x < size) {
+      const w = 34 + rnd() * 30;
+      const shade = 140 + rnd() * 50;
+      ctx.fillStyle = `rgb(${shade},${shade * 0.9},${shade * 0.72})`;
+      ctx.beginPath();
+      const rr = 8;
+      const x0 = x + 2, y0 = r * h + 2, x1 = x + w - 2, y1 = (r + 1) * h - 2;
+      ctx.moveTo(x0 + rr, y0); ctx.lineTo(x1 - rr, y0); ctx.quadraticCurveTo(x1, y0, x1, y0 + rr);
+      ctx.lineTo(x1, y1 - rr); ctx.quadraticCurveTo(x1, y1, x1 - rr, y1); ctx.lineTo(x0 + rr, y1);
+      ctx.quadraticCurveTo(x0, y1, x0, y1 - rr); ctx.lineTo(x0, y0 + rr); ctx.quadraticCurveTo(x0, y0, x0 + rr, y0);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      ctx.fillRect(x0 + 3, y0 + 2, w - 10, 4);
+      x += w;
+    }
+  }
+  speckle(ctx, size, rnd, 4000, 0.05, 0.2, '255,240,210', '60,45,30', 1.6);
+  blotches(ctx, size, rnd, 20, '200,170,120', 0.25, 30, 90);
+  return toTexture(c);
+}
+
+export function doorTexture() {
+  const w = 128, h = 256;
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d');
+  const rnd = seededRandom(41);
+  for (let i = 0; i < 5; i++) {
+    ctx.fillStyle = `rgb(${95 + rnd() * 25},${60 + rnd() * 15},${35 + rnd() * 10})`;
+    ctx.fillRect(i * (w / 5), 0, w / 5 - 2, h);
+  }
+  ctx.fillStyle = 'rgba(30,18,8,0.6)';
+  for (let i = 0; i < 5; i++) ctx.fillRect(i * (w / 5) + w / 5 - 2, 0, 2, h);
+  ctx.fillStyle = '#3a2a1c';
+  ctx.fillRect(0, 30, w, 14); ctx.fillRect(0, h - 44, w, 14);
+  ctx.fillStyle = '#222';
+  for (const y of [37, h - 37]) for (let x = 8; x < w; x += 20) { ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill(); }
+  ctx.fillStyle = '#5b5040';
+  ctx.beginPath(); ctx.arc(w - 22, h / 2, 6, 0, Math.PI * 2); ctx.fill();
+  speckle(ctx, w, rnd, 800, 0.05, 0.25, '255,230,200', '20,10,0', 1.5);
+  return toTexture(c, false);
+}
+
+export function shutterTexture(color = '#3f6f7a') {
+  const w = 64, h = 128;
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 0, w, h);
+  for (let y = 6; y < h - 6; y += 8) {
+    ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(4, y + 5, w - 8, 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.fillRect(4, y, w - 8, 2);
+  }
+  ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 4; ctx.strokeRect(2, 2, w - 4, h - 4);
+  const rnd = seededRandom(5);
+  speckle(ctx, w, rnd, 400, 0.05, 0.3, '240,230,210', '30,20,10', 1.5);
+  return toTexture(c, false);
+}
+
+export function sandbagTexture() {
+  const size = 128;
+  const [c, ctx] = canvas(size);
+  const rnd = seededRandom(51);
+  ctx.fillStyle = '#a89470';
+  ctx.fillRect(0, 0, size, size);
+  for (let i = 0; i < size; i += 3) { ctx.fillStyle = `rgba(80,60,40,${0.05 + rnd() * 0.08})`; ctx.fillRect(0, i, size, 1); ctx.fillRect(i, 0, 1, size); }
+  speckle(ctx, size, rnd, 600, 0.05, 0.2, '230,215,180', '60,45,30', 1.5);
+  return toTexture(c);
+}
+
+// Equirectangular sky with a warm horizon haze, a sun and soft clouds.
+export function cloudySkyTexture(sunU = 0.3, sunV = 0.3) {
+  const W = 2048, H = 1024;
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const ctx = c.getContext('2d');
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#2f66ad');
+  g.addColorStop(0.3, '#5f93cf');
+  g.addColorStop(0.47, '#b9d2e6');
+  g.addColorStop(0.5, '#ead9b8');
+  g.addColorStop(0.56, '#cdb68c');
+  g.addColorStop(1, '#a88e62');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+  // sun glow
+  const sx = sunU * W, sy = sunV * H;
+  const sg = ctx.createRadialGradient(sx, sy, 0, sx, sy, 300);
+  sg.addColorStop(0, 'rgba(255,250,230,1)');
+  sg.addColorStop(0.05, 'rgba(255,245,210,0.95)');
+  sg.addColorStop(0.2, 'rgba(255,230,180,0.35)');
+  sg.addColorStop(1, 'rgba(255,220,170,0)');
+  ctx.fillStyle = sg;
+  ctx.fillRect(0, 0, W, H);
+  // clouds: clusters of soft blobs, flattened near the horizon
+  const rnd = seededRandom(77);
+  for (let k = 0; k < 38; k++) {
+    const cx = rnd() * W, cy = H * (0.12 + rnd() * 0.33);
+    const flat = 0.35 + (cy / H) * 0.6;
+    const n = 6 + Math.floor(rnd() * 10);
+    for (let i = 0; i < n; i++) {
+      const x = cx + (rnd() - 0.5) * 220, y = cy + (rnd() - 0.5) * 40 * flat;
+      const r = 30 + rnd() * 70;
+      for (const ox of [-W, 0, W]) {
+        const cg = ctx.createRadialGradient(x + ox, y, 0, x + ox, y, r);
+        cg.addColorStop(0, 'rgba(255,255,255,0.55)');
+        cg.addColorStop(0.6, 'rgba(250,250,252,0.25)');
+        cg.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = cg;
+        ctx.save();
+        ctx.translate(x + ox, y); ctx.scale(1, flat); ctx.translate(-(x + ox), -y);
+        ctx.fillRect(x + ox - r, y - r, r * 2, r * 2);
+        ctx.restore();
+      }
+    }
+  }
+  // distant hills on the horizon
+  ctx.fillStyle = 'rgba(160,140,110,0.7)';
+  ctx.beginPath();
+  ctx.moveTo(0, H * 0.5);
+  for (let x = 0; x <= W; x += 16) ctx.lineTo(x, H * 0.5 - 14 - Math.abs(Math.sin(x * 0.004) * 30 + Math.sin(x * 0.013) * 10));
+  ctx.lineTo(W, H * 0.5); ctx.closePath(); ctx.fill();
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.mapping = THREE.EquirectangularReflectionMapping;
+  return t;
+}

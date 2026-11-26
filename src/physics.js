@@ -7,6 +7,7 @@ export const RADIUS = 0.38;
 export const STAND_H = 1.8;
 export const CROUCH_H = 1.25;
 export const RUN_SPEED = 6.0;
+export const STEP = 0.42;
 
 const tmpBox = { minX: 0, minY: 0, minZ: 0, maxX: 0, maxY: 0, maxZ: 0 };
 
@@ -36,6 +37,20 @@ export function fitsAt(a, x, z, colliders) {
 export function canStand(a, colliders) {
   const b = agentBox(a, STAND_H);
   for (const c of colliders) if (overlaps(b, c)) return false;
+  return true;
+}
+
+// Walk up a low ledge (stairs) instead of being blocked by it.
+function tryStep(a, c, h, colliders) {
+  const rise = c.maxY - a.pos.y;
+  if (!a.onGround || rise <= 0 || rise > STEP) return false;
+  const y = a.pos.y;
+  a.pos.y = c.maxY + 0.001;
+  const b = agentBox(a, h);
+  for (const o of colliders) {
+    if (overlaps(b, o)) { a.pos.y = y; return false; }
+  }
+  a.stepped = true;
   return true;
 }
 
@@ -80,6 +95,7 @@ export function moveAgent(a, wishX, wishZ, maxSpeed, wantJump, dt, colliders) {
   let b = agentBox(a, h);
   for (const c of colliders) {
     if (overlaps(b, c)) {
+      if (tryStep(a, c, h, colliders)) { b = agentBox(a, h); continue; }
       if (v.x > 0) a.pos.x = c.minX - RADIUS - 0.001; else if (v.x < 0) a.pos.x = c.maxX + RADIUS + 0.001;
       v.x = 0;
       b = agentBox(a, h);
@@ -90,6 +106,7 @@ export function moveAgent(a, wishX, wishZ, maxSpeed, wantJump, dt, colliders) {
   b = agentBox(a, h);
   for (const c of colliders) {
     if (overlaps(b, c)) {
+      if (tryStep(a, c, h, colliders)) { b = agentBox(a, h); continue; }
       if (v.z > 0) a.pos.z = c.minZ - RADIUS - 0.001; else if (v.z < 0) a.pos.z = c.maxZ + RADIUS + 0.001;
       v.z = 0;
       b = agentBox(a, h);
