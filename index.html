@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Browser Strike</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Browser Strike — a round-based tactical shooter that runs in your browser.">
+  <link rel="stylesheet" href="css/style.css">
+  <script type="importmap">{ "imports": { "three": "./lib/three.module.min.js" } }</script>
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <!-- ===================== LOBBY ===================== -->
+  <div id="menu">
+    <header class="topnav">
+      <div class="navleft">
+        <button id="btn-fullscreen" class="iconbtn" title="Fullscreen">⛶</button>
+        <div class="logo"><span>BROWSER</span><b>STRIKE</b></div>
+      </div>
+      <nav>
+        <a data-tab="tab-play" class="active">PLAY</a>
+        <a data-tab="tab-settings">SETTINGS</a>
+        <a data-tab="tab-controls">CONTROLS</a>
+      </nav>
+      <div class="navright"><span class="badge">OFFLINE · VS BOTS</span></div>
+    </header>
+
+    <section id="tab-play" class="tabpage">
+      <div class="modes">
+        <div class="modecard sandfort" data-mode="defusal">
+          <div class="tags"><span class="tag new">NEW</span><span class="tag">5V5</span></div>
+          <div class="art"><div class="sun"></div><div class="dune d1"></div><div class="dune d2"></div><div class="tower t1"></div><div class="tower t2"></div><div class="tower t3"></div></div>
+          <div class="cardfoot">
+            <div class="play">P L A Y</div>
+            <div class="mapname">SANDFORT</div>
+            <div class="modename">BOMB DEFUSAL · 5V5</div>
+          </div>
+        </div>
+        <div class="modecard blockyard" data-mode="duel">
+          <div class="tags"><span class="tag">1V1</span></div>
+          <div class="art"><div class="blk b1"></div><div class="blk b2"></div><div class="blk b3"></div><div class="blk b4"></div></div>
+          <div class="cardfoot">
+            <div class="play">P L A Y</div>
+            <div class="mapname">BLOCKYARD</div>
+            <div class="modename">SNIPER DUEL · FIRST TO 8</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="quickset">
+        <label>Side
+          <select id="set-team"><option value="auto">Auto</option><option value="G">Guardians</option><option value="R">Raiders</option></select>
+        </label>
+        <label>Bots
+          <select id="set-diff"><option value="easy">Easy</option><option value="normal">Normal</option><option value="hard">Hard</option></select>
+        </label>
+        <label>Match
+          <select id="set-len"><option value="short">Short (first to 9)</option><option value="long">Competitive (first to 13)</option></select>
+        </label>
+      </div>
+
+      <aside class="news">
+        <div class="newscard">
+          <div class="kicker">PATCH NOTES</div>
+          <h3>Welcome to Browser Strike</h3>
+          <p>Plant the charge as the Raiders or hold the line as the Guardians. Earn money each round, buy rifles, armor and grenades, and win the match first.</p>
+        </div>
+        <div class="newscard dark">
+          <div class="kicker">HOW TO WIN</div>
+          <h3>Rounds &amp; economy</h3>
+          <p>Eliminate the enemy team, detonate the charge at site A or B, or defuse it in time. Loss streaks pay more — save when you're broke.</p>
+        </div>
+      </aside>
+    </section>
+
+    <section id="tab-settings" class="tabpage hidden panel">
+      <h2>Settings</h2>
+      <div class="grid">
+        <label>Player name <input id="set-name" maxlength="16"></label>
+        <label>Mouse sensitivity <span id="set-sens-val"></span><input id="set-sens" type="range" min="0.1" max="4" step="0.05"></label>
+        <label>Field of view <span id="set-fov-val"></span><input id="set-fov" type="range" min="60" max="100" step="1"></label>
+        <label>Volume <span id="set-vol-val"></span><input id="set-vol" type="range" min="0" max="1" step="0.05"></label>
+        <label class="row"><input id="set-ff" type="checkbox"> Friendly fire</label>
+      </div>
+    </section>
+
+    <section id="tab-controls" class="tabpage hidden panel">
+      <h2>Controls</h2>
+      <table class="keys">
+        <tr><td>W A S D</td><td>Move</td><td>Mouse 1</td><td>Fire</td></tr>
+        <tr><td>Shift</td><td>Walk (quiet, accurate)</td><td>Mouse 2</td><td>Scope / heavy knife</td></tr>
+        <tr><td>Ctrl / C</td><td>Crouch</td><td>R</td><td>Reload</td></tr>
+        <tr><td>Space</td><td>Jump</td><td>1 2 3 4 5</td><td>Primary, pistol, knife, grenades, charge</td></tr>
+        <tr><td>E</td><td>Plant / defuse / pick up</td><td>Q</td><td>Last weapon</td></tr>
+        <tr><td>B</td><td>Buy menu</td><td>G</td><td>Drop weapon</td></tr>
+        <tr><td>Tab</td><td>Scoreboard</td><td>Esc</td><td>Pause</td></tr>
+      </table>
+    </section>
+
+    <footer class="foot">Browser Strike is an original game — all maps, models and sounds are generated in code.</footer>
+  </div>
+
+  <!-- ===================== IN GAME ===================== -->
+  <div id="hud" class="hidden"></div>
+  <div id="clickplay" class="hidden">CLICK TO PLAY</div>
+  <div id="fps"></div>
+
+  <div id="pause" class="overlay hidden">
+    <div class="panel small">
+      <h2>Paused</h2>
+      <label>Sensitivity <span id="p-sens-val"></span><input id="p-sens" type="range" min="0.1" max="4" step="0.05"></label>
+      <label>Volume <span id="p-vol-val"></span><input id="p-vol" type="range" min="0" max="1" step="0.05"></label>
+      <button id="btn-resume" class="btn primary">Resume</button>
+      <button id="btn-quit" class="btn">Quit to lobby</button>
+    </div>
+  </div>
+
+  <div id="over" class="overlay hidden">
+    <div class="panel small">
+      <h1 id="over-title">Victory</h1>
+      <div id="over-score">0 : 0</div>
+      <div id="over-stats"></div>
+      <button id="btn-over-again" class="btn primary">Play again</button>
+      <button id="btn-over-menu" class="btn">Back to lobby</button>
+    </div>
+  </div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
