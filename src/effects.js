@@ -67,6 +67,20 @@ export class Effects {
     this.group.add(this.light);
     this.lightLife = 0;
 
+    // Ejected brass
+    const cGeo = new THREE.CylinderGeometry(0.0055, 0.0055, 0.024, 8);
+    cGeo.rotateZ(Math.PI / 2);
+    this.casings = new THREE.InstancedMesh(cGeo, new THREE.MeshStandardMaterial({ color: 0xc8a04a, roughness: 0.3, metalness: 0.95 }), 80);
+    this.casings.frustumCulled = false;
+    this.casings.castShadow = false;
+    this.casingData = [];
+    for (let i = 0; i < 80; i++) this.casingData.push({ life: 0, p: new THREE.Vector3(), v: new THREE.Vector3(), r: new THREE.Euler(), spin: new THREE.Vector3(), floor: 0 });
+    this.casingIdx = 0;
+    this._m4 = new THREE.Matrix4(); this._q = new THREE.Quaternion(); this._one = new THREE.Vector3(1, 1, 1);
+    this._hide = new THREE.Matrix4().makeScale(0, 0, 0);
+    for (let i = 0; i < 80; i++) this.casings.setMatrixAt(i, this._hide);
+    this.group.add(this.casings);
+
     // Smokes / explosions
     this.smokeTex = TEX.softCircleTexture();
     this.smokes = [];
@@ -75,12 +89,20 @@ export class Effects {
 
   clear() {
     for (const d of this.decals) d.visible = false;
+    for (let i = 0; i < this.casingData.length; i++) { this.casingData[i].life = 0; this.casings.setMatrixAt(i, this._hide); }
     for (const s of this.smokes) this.group.remove(s.group);
     this.smokes = [];
     for (const b of this.blasts) this.group.remove(b.s);
     this.blasts = [];
     for (let i = 0; i < MAX_PARTICLES; i++) { this.pLife[i] = 0; this.pPos[i * 3 + 1] = -1000; }
     this.points.geometry.attributes.position.needsUpdate = true;
+  }
+
+  casing(pos, vel, floorY) {
+    const c = this.casingData[this.casingIdx++ % this.casingData.length];
+    c.p.copy(pos); c.v.copy(vel); c.floor = floorY; c.life = 2.5;
+    c.r.set(rand(0, 6), rand(0, 6), 0);
+    c.spin.set(rand(-25, 25), rand(-25, 25), rand(-25, 25));
   }
 
   tracer(from, to) {
@@ -203,6 +225,24 @@ export class Effects {
       if (t.life <= 0 || t.remain <= 0) t.mesh.visible = false;
       else t.mesh.scale.z = Math.min(6, t.remain);
     }
+    for (let i = 0; i < this.casingData.length; i++) {
+      const c = this.casingData[i];
+      if (c.life <= 0) continue;
+      c.life -= dt;
+      if (c.life <= 0) { this.casings.setMatrixAt(i, this._hide); continue; }
+      c.v.y -= 14 * dt;
+      c.p.addScaledVector(c.v, dt);
+      if (c.p.y < c.floor + 0.006) {
+        c.p.y = c.floor + 0.006;
+        if (c.v.y < -1.2 && this.onCasingBounce) this.onCasingBounce(c.p);
+        c.v.y *= -0.35; c.v.x *= 0.5; c.v.z *= 0.5; c.spin.multiplyScalar(0.5);
+      }
+      c.r.x += c.spin.x * dt; c.r.y += c.spin.y * dt; c.r.z += c.spin.z * dt;
+      this._q.setFromEuler(c.r);
+      this._m4.compose(c.p, this._q, this._one);
+      this.casings.setMatrixAt(i, this._m4);
+    }
+    this.casings.instanceMatrix.needsUpdate = true;
     for (const f of this.flashes) {
       if (f.life <= 0) continue;
       f.life -= dt;

@@ -107,6 +107,7 @@ export class Input {
 
     // actions
     if (this.wasPressed('KeyR')) game.reload(p);
+    if (this.wasPressed('KeyF')) game.vm.inspect();
     if (this.wasPressed('Digit1')) game.switchTo(p, 'primary');
     if (this.wasPressed('Digit2')) game.switchTo(p, 'secondary');
     if (this.wasPressed('Digit3')) game.switchTo(p, 'knife');

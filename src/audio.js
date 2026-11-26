@@ -158,6 +158,14 @@ export class Audio {
     this.tone(this.out(pos), { dur: 0.06, f0: 900, f1: 500, type: 'triangle', vol: 0.3 });
   }
 
+  casing(pos) {
+    if (!this.ctx) return;
+    const d = this.out(pos);
+    const f = 3800 + Math.random() * 1500;
+    this.tone(d, { dur: 0.05, f0: f, type: 'sine', vol: 0.05 });
+    this.tone(d, { start: 0.06, dur: 0.04, f0: f * 1.1, type: 'sine', vol: 0.03 });
+  }
+
   explosion(pos) {
     if (!this.ctx) return;
     const d = this.out(pos);

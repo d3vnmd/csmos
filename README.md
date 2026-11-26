@@ -6,6 +6,14 @@ A round-based 5v5 tactical shooter that runs in the browser. Nothing to install.
 Бүх газрын зураг, 3D загвар, бэлдэц (texture), дууг кодоор шинээр үүсгэсэн. Өөр тоглоомын asset огт ашиглаагүй.
 All maps, models, textures and sounds are generated in code. No assets from other games are used.
 
+![Mid](docs/screenshots/mid.png)
+
+| | |
+|---|---|
+| ![Lobby](docs/screenshots/lobby.png) | ![Site A](docs/screenshots/site-a.png) |
+| ![Inspect](docs/screenshots/inspect.png) | ![Buy menu](docs/screenshots/buy-menu.png) |
+| ![Site B](docs/screenshots/site-b.png) | ![Blockyard](docs/screenshots/blockyard.png) |
+
 ## Горимууд / Modes
 
 | Горим | Газрын зураг | Тайлбар |
@@ -29,6 +37,9 @@ All maps, models, textures and sounds are generated in code. No assets from othe
 - Recoil, spread (хөдөлж, үсэрч, суугаа үеийн нарийвчлал), толгойд тусахад 4 дахин хохирол, хуяг нэвтрэлт.
 - Нас барсан тоглогчийн зэвсэг газар унах ба түүнийг авах, бөмбөгийг унагах ба авах.
 - HUD: дугуй радар, оноо ба цаг, kill feed, гэмтлийн чиглэл, scoreboard (Tab), худалдан авах цэс (B).
+- Зэвсгийн загварууд нь bevel-тэй extrude хийсэн профайлаас бүтсэн: rail, боолт, sight, дуран, гильз үсрэлт, буу шалгах анимэйшн (F).
+- Газрын зураг: янз бүрийн өндөртэй барилга, цонх ба хаалт, хаалга ба саравч, нуман хаалга, шаттай тавцан, элсэн уут, утас, чулуун зам, алсын хотын дүр төрх, үүлтэй тэнгэр.
+- Рендер: GTAO ambient occlusion, SMAA, ACES tone mapping, орчны тусгал. Settings хэсгээс High, Medium, Low чанарыг сонгоно.
 - Нас барсны дараа багийн андыг ажиглах (spectate).
 
 ## Ажиллуулах / Run locally
@@ -54,6 +65,7 @@ GitHub Pages дээр ч шууд ажиллана: repo-гийн root фолд�
 | 1–5, Q, хулганы дугуй | Зэвсэг солих |
 | E | Бөмбөг тавих, тайлах, зэвсэг авах |
 | G | Зэвсэг унагах |
+| F | Буу шалгах (inspect) |
 | B / Tab / Esc | Худалдан авах цэс / Оноо / Түр зогсоох |
 
 ## Бүтэц / Structure
@@ -61,7 +73,8 @@ GitHub Pages дээр ч шууд ажиллана: repo-гийн root фолд�
 ```
 index.html        лобби + HUD-ийн бүтэц
 css/style.css     UI стиль
-lib/              three.js r170 (MIT)
+lib/              three.js r170 + post-processing addons (MIT)
+docs/screenshots/ тоглоомын зургууд
 src/main.js       renderer, цэс, үндсэн гогцоо
 src/game.js       тоглолт, round, эдийн засаг, бөмбөг, буудлага
 src/bot.js        ботын AI (худалдан авалт, зорилго, тулаан)
